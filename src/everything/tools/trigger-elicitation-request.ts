@@ -19,6 +19,14 @@ const config = {
 };
 
 /**
+ * Renders a multi-select answer on a single line. The client may answer with an
+ * array of values, so join those instead of letting them stringify as
+ * comma-separated output by accident.
+ */
+const formatMultiSelect = (value: unknown): string =>
+  Array.isArray(value) ? value.join(", ") : String(value);
+
+/**
  * Registers the 'trigger-elicitation-request' tool.
  *
  * If the client does not support the elicitation capability, the tool is not registered.
@@ -195,7 +203,6 @@ export const registerTriggerElicitationRequestTool = (server: McpServer) => {
           if (userData.name) lines.push(`- Name: ${userData.name}`);
           if (userData.check !== undefined)
             lines.push(`- Agreed to terms: ${userData.check}`);
-          if (userData.color) lines.push(`- Favorite Color: ${userData.color}`);
           if (userData.email) lines.push(`- Email: ${userData.email}`);
           if (userData.homepage) lines.push(`- Homepage: ${userData.homepage}`);
           if (userData.birthdate)
@@ -204,7 +211,32 @@ export const registerTriggerElicitationRequestTool = (server: McpServer) => {
             lines.push(`- Favorite Integer: ${userData.integer}`);
           if (userData.number !== undefined)
             lines.push(`- Favorite Number: ${userData.number}`);
-          if (userData.petType) lines.push(`- Pet Type: ${userData.petType}`);
+          if (userData.firstLine)
+            lines.push(`- First Line: ${userData.firstLine}`);
+          if (userData.untitledSingleSelectEnum)
+            lines.push(
+              `- Untitled Single Select Enum: ${userData.untitledSingleSelectEnum}`
+            );
+          if (userData.untitledMultipleSelectEnum)
+            lines.push(
+              `- Untitled Multiple Select Enum: ${formatMultiSelect(
+                userData.untitledMultipleSelectEnum
+              )}`
+            );
+          if (userData.titledSingleSelectEnum)
+            lines.push(
+              `- Titled Single Select Enum: ${userData.titledSingleSelectEnum}`
+            );
+          if (userData.titledMultipleSelectEnum)
+            lines.push(
+              `- Titled Multiple Select Enum: ${formatMultiSelect(
+                userData.titledMultipleSelectEnum
+              )}`
+            );
+          if (userData.legacyTitledEnum)
+            lines.push(
+              `- Legacy Titled Single Select Enum: ${userData.legacyTitledEnum}`
+            );
 
           content.push({
             type: "text",

@@ -662,6 +662,92 @@ describe('Tools', () => {
       expect(result.content[1].text).toContain('John Doe');
     });
 
+    it('should render every field it requested from the client', async () => {
+      const handlers: Map<string, Function> = new Map();
+      const mockSendRequest = vi.fn().mockResolvedValue({
+        action: 'accept',
+        content: {
+          // Exactly the fields declared in the tool's requestedSchema.properties.
+          name: 'John Doe',
+          check: true,
+          firstLine: 'It was a dark and stormy night.',
+          email: 'john@example.com',
+          homepage: 'https://example.com/ada',
+          birthdate: '1815-12-10',
+          integer: 88,
+          number: 0,
+          untitledSingleSelectEnum: 'Monica',
+          untitledMultipleSelectEnum: ['Guitar', 'Piano'],
+          titledSingleSelectEnum: 'hero-2',
+          titledMultipleSelectEnum: ['fish-3'],
+          legacyTitledEnum: 'pet-4',
+        },
+      });
+
+      const mockServer = {
+        registerTool: vi.fn((name: string, config: any, handler: Function) => {
+          handlers.set(name, handler);
+        }),
+        server: {
+          getClientCapabilities: vi.fn(() => ({ elicitation: {} })),
+        },
+      } as unknown as McpServer;
+
+      registerTriggerElicitationRequestTool(mockServer);
+
+      const handler = handlers.get('trigger-elicitation-request')!;
+      const result = await handler({}, { sendRequest: mockSendRequest });
+
+      const userInputs = result.content[1].text;
+      expect(userInputs).toContain('John Doe');
+      expect(userInputs).toContain('dark and stormy');
+      expect(userInputs).toContain('john@example.com');
+      expect(userInputs).toContain('https://example.com/ada');
+      expect(userInputs).toContain('1815-12-10');
+      expect(userInputs).toContain('88');
+      // `number: 0` is a legitimate answer and must not be treated as unset.
+      expect(userInputs).toContain('- Favorite Number: 0');
+      expect(userInputs).toContain('Monica');
+      expect(userInputs).toContain('Guitar');
+      expect(userInputs).toContain('Piano');
+      expect(userInputs).toContain('hero-2');
+      expect(userInputs).toContain('fish-3');
+      expect(userInputs).toContain('pet-4');
+    });
+
+    it('should not echo fields it never requested from the client', async () => {
+      const handlers: Map<string, Function> = new Map();
+      const mockSendRequest = vi.fn().mockResolvedValue({
+        action: 'accept',
+        content: {
+          name: 'John Doe',
+          // Neither key is declared in requestedSchema.properties, so the
+          // client was never asked for them.
+          color: 'Blue',
+          petType: 'Cat',
+        },
+      });
+
+      const mockServer = {
+        registerTool: vi.fn((name: string, config: any, handler: Function) => {
+          handlers.set(name, handler);
+        }),
+        server: {
+          getClientCapabilities: vi.fn(() => ({ elicitation: {} })),
+        },
+      } as unknown as McpServer;
+
+      registerTriggerElicitationRequestTool(mockServer);
+
+      const handler = handlers.get('trigger-elicitation-request')!;
+      const result = await handler({}, { sendRequest: mockSendRequest });
+
+      const userInputs = result.content[1].text;
+      expect(userInputs).toContain('John Doe');
+      expect(userInputs).not.toContain('Blue');
+      expect(userInputs).not.toContain('Cat');
+    });
+
     it('should handle decline action', async () => {
       const handlers: Map<string, Function> = new Map();
       const mockSendRequest = vi.fn().mockResolvedValue({
