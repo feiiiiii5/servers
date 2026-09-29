@@ -209,6 +209,22 @@ describe('KnowledgeGraphManager', () => {
       expect(alice?.observations).toHaveLength(3);
     });
 
+    it('should not add duplicate observations within a single batch', async () => {
+      await manager.createEntities([
+        { name: 'Alice', entityType: 'person', observations: ['works at Acme Corp'] },
+      ]);
+
+      const results = await manager.addObservations([
+        { entityName: 'Alice', contents: ['likes coffee', 'likes coffee'] },
+      ]);
+
+      expect(results[0].addedObservations).toEqual(['likes coffee']);
+
+      const graph = await manager.readGraph();
+      const alice = graph.entities.find(e => e.name === 'Alice');
+      expect(alice?.observations).toEqual(['works at Acme Corp', 'likes coffee']);
+    });
+
     it('should throw error for non-existent entity', async () => {
       await expect(async () => {
         await manager.addObservations([
